@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUEPIC's Värld</title>
+    <style>
+        :root {
+            --primary-color: #00e6e6;
+            --secondary-color: #001a1a;
+            --accent-color: #ff69b4;
+            --background-color: #0d1a1a;
+            --text-color: #ffffff;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        header {
+            background-color: var(--secondary-color);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .logo {
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+        
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .section {
+            background-color: rgba(0, 230, 230, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        h1, h2 {
+            color: var(--primary-color);
+        }
+        
+        .button {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/Users/anotherdimension/Library/Mobile Documents/com~apple~CloudDocs/LOGOS/AUGUST/AuEpic.jpg" alt="AUEPIC Logo" class="logo">
+        <h1>Välkommen till AUEPIC's Värld</h1>
+    </header>
+    
+    <main>
+        <div class="section">
+            <h2>Om mig</h2>
+            <p>Hej! Jag är AUEPIC och jag älskar att spela VR-spel och designa coola kläder.</p>
+        </div>
+        
+        <div class="section">
+            <h2>Mina kläder</h2>
+            <p>Här kommer du snart att kunna se och köpa mina senaste designs!</p>
+            <button class="button">Se kollektion</button>
+        </div>
+        
+        <div class="section">
+            <h2>Mina YouTube-videor</h2>
+            <p>Kolla in mina senaste gameplay-videor från PS5 och VR!</p>
+            <button class="button">Gå till min kanal</button>
+        </div>
+    </main>
+</body>
+</html>
