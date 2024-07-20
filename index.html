@@ -3,8 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuEpic Cosmic Playground</title>
-    <link rel="stylesheet" href="styles/main.css">
+    <title>Forward Cosmic Journey Animation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+    </style>
+</head>
+<body>
+    <canvas id="cosmicCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('cosmicCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const particles = [];
+        const particleCount = 2000; // Increased for more stars
+        let lastClick = 0;
+
+        class Particle {
+            constructor(isBurst = false, isLarge = false) {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.z = Math.random() * 2000; // Increased depth
+                this.isLarge = isLarge;
+                this.size = isLarge ? Math.random() * 2 + 1 : Math.random() * 0.3 + 0.1;
+                this.brightness = isLarge ? Math.random() * 30 + 70 : Math.random() * 50 + 50;
+                this.color = `hsl(${Math.random() * 30 + 30}, 100%, ${this.brightness}%)`;
+                this.isBurst = isBurst;
+                this.life = isBurst ? 100 : Infinity;
+                this.twinkleSpeed = Math.random() * 0.03 + 0.01;
+                this.twinklePhase = Math.random() * Math.PI * 2;
+                this.speed = isLarge ? 2 : 0.5; // Larger stars move faster
+            }
+
+            update() {
+                this.z -= this.speed;
+                if (this.z <= 1) {
+                    this.z = 2000;
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                }
+
+                let scale = 1000 / this.z;
+                let x2d = (this.x - canvas.width / 2) * scale + canvas.width / 2;
+                let y2d = (this.y - canvas.height / 2) * scale + canvas.height / 2;
+
+                if (this.isBurst) {
+                    this.life--;
+                    this.size *= 0.99;
+                }
+
+                // Twinkle effect
+                this.twinklePhase += this.twinkleSpeed;
+                let twinkle = Math.sin(this.twinklePhase) * 0.5 + 0.5;
+
+                this.draw(x2d, y2d, scale, twinkle);
+            }
+
+            draw(x, y, scale, twinkle) {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = (Math.min(this.z / 1000, 1) * twinkle);
+                ctx.beginPath();
+                ctx.arc(x, y, this.size * scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function connectParticles() {
+            const now = Date.now();
+            const timeSinceLastClick = now - lastClick;
+            const maxConnections = Math.min(3, Math.floor(timeSinceLastClick / 2000));
+            
+            for (let i = 0; i < maxConnections; i++) {
+                const p1 = particles[Math.floor(Math.random() * particles.length)];
+                const p2 = particles[Math.floor(Math.random() * particles.length)];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 200) {
+                    ctx.strokeStyle = `rgba(255, 215, 0, 0.03)`;
+                    ctx.lineWidth = 0.1;
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function createBurst(x, y) {
+            for (let i = 0; i < 20; i++) {
+                particles.push(new Particle(true));
+            }
+            lastClick = Date.now();
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach((particle, index) => {
+                particle.update();
+                if (particle.life <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+
+            connectParticles();
+
+            requestAnimationFrame(animate);
+        }
+
+        canvas.addEventListener('click', (event) => {
+            createBurst(event.clientX, event.clientY);
+        });
+
+        function createParticles() {
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(false, Math.random() < 0.03)); // 3% chance of being a large star
+            }
+        }
+
+        createParticles();
+        animate();
+    </script>
+
 </head>
 <body>
     <canvas id="cosmic-playground"></canvas>
