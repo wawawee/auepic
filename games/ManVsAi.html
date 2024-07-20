@@ -1,5 +1,5 @@
-<!DOCTYPE html><html><head><base href="https://websim.ai">
-<title>Vertical Air Hockey</title>
+<!DOCTYPE html><html><head><base href="/index.html">
+<title>Man Vs Ai Epic Jeffersson AirHockey</title>
 <style>
 body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a1a;font-family:Arial,sans-serif;overflow:hidden;touch-action:none}
 #gameCanvas{border:10px solid #444;border-radius:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}
@@ -27,13 +27,17 @@ const simulationSpeedMultiplier = 1.8;
 
 // Add array of random image URLs
 const randomImages = [
-    'https://picsum.photos/200/300?random=1',
-    'https://picsum.photos/200/300?random=2',
-    'https://picsum.photos/200/300?random=3',
-    'https://picsum.photos/200/300?random=4',
-    'https://picsum.photos/200/300?random=5'
+    'https://picsum.photos/50/100?random=1',
+    'https://picsum.photos/200/150?random=2',
+    'https://picsum.photos/666/300?random=3',
+    'https://picsum.photos/999/400?random=4',
+    'https://picsum.photos/1222/1500?random=5'
 ];
+const simulationSpeedMultiplier = 1.8;
+const frictionCoefficient = 0.99; // Added friction coefficient
 
+// Add array of random image URLs
+const randomImages = [
 // Preload images
 const preloadedImages = randomImages.map(src => {
     const img = new Image();
@@ -149,7 +153,31 @@ function drawWeirdThing(thing) {
     ctx.fill();
     ctx.closePath();
 }
+function drawWeirdThing(thing) {
+    ctx.beginPath();
+    ctx.arc(thing.x, thing.y, thing.radius, 0, Math.PI * 2);
+    ctx.fillStyle = thing.effect === 'enlarge' ? '#00ff00' : '#ff0000';
+    ctx.fill();
+    ctx.closePath();
+}
 
+function updatePuckPosition() {
+    // Update position
+    puck.x += puck.dx * simulationSpeedMultiplier;
+    puck.y += puck.dy * simulationSpeedMultiplier;
+
+    // Apply friction
+    puck.dx *= frictionCoefficient;
+    puck.dy *= frictionCoefficient;
+
+    // If the puck is moving very slowly, stop it completely
+    if (Math.abs(puck.dx) < 0.1 && Math.abs(puck.dy) < 0.1) {
+        puck.dx = 0;
+        puck.dy = 0;
+    }
+}
+
+function resetPuck(){puck.x=canvas.width/2;puck.y=canvas.height/2;puck.dx=0;puck.dy=0}
 function resetPuck(){puck.x=canvas.width/2;puck.y=canvas.height/2;puck.dx=0;puck.dy=0}
 function launchPuck(){const a=Math.random()*Math.PI*2;puck.dx=Math.cos(a)*puck.speed;puck.dy=Math.sin(a)*puck.speed}
 resetPuck();
