@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base href="/index.html">
+<title>Human Vs Ai Epic Air Hockey</title>
+<style>
+body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a1a;font-family:Arial,sans-serif;overflow:hidden;touch-action:pan-up}
+#gameCanvas{border:10px solid #444;border-radius:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}
+#scoreBoard{position:absolute;top:20px;font-size:32px;font-weight:700;color:#fff;text-shadow:2px 2px 4px rgba(0,0,0,.5)}
+@keyframes psychedelic {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+#gameCanvas {
+  animation: psychedelic 10s linear infinite;
+}
+</style>
+</head>
+<body>
+<div id="scoreBoard">Player: 0 | AI: 0</div>
+<canvas id="gameCanvas" width="600" height="800"></canvas>
+<script>
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d'),scoreBoard=document.getElementById('scoreBoard'),
+paddle={radius:35,y:canvas.height-70,emotion:'happy'},aiPaddle={radius:35,y:70,speed:4.5,emotion:'neutral'},puck={radius:20,speed:11},goal={width:225,height:15};
+let playerScore=0,aiScore=0,lastScoreTime=0,puckStuckTime=0,aiWaitTime=0,aiState='normal',goalEffect={active:false,startTime:0,scorer:''},particles=[];
+let lastTime = 0;
+const targetFPS = 60;
+const targetFrameTime = 1000 / targetFPS;
+const simulationSpeedMultiplier = 1.8;
+const frictionCoefficient = 0.99; // Friction coefficient
+
+// Add array of random image URLs
+const randomImages = [
+    'https://picsum.photos/100/50?random=1',
+    'https://picsum.photos/250/100?random=2',
+    'https://picsum.photos/400/300?random=3',
+    'https://picsum.photos/500/600?random=4',
+    'https://picsum.photos/1200/900?random=5'
+];
+
+// Preload images
+const preloadedImages = randomImages.map(src => {
+    const img = new Image();
+    img.src = src;
+    return img;
+});
+
+// Create audio context
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Function to create and play background music
+function playBackgroundMusic() {
+    const twinPeaksOscillator = audioContext.createOscillator();
+    const pacmanOscillator = audioContext.createOscillator();
+    const acidHouseOscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    // Twin Peaks-like sound
+    twinPeaksOscillator.type = 'sine';
+    twinPeaksOscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+    twinPeaksOscillator.frequency.setValueAtTime(440, audioContext.currentTime + 2);
+    
+    // Pacman-like sound
+    pacmanOscillator.type = 'square';
+    pacmanOscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+    pacmanOscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.1);
+    pacmanOscillator.frequency.setValueAtTime(440, audioContext.currentTime + 0.2);
+    
+    // Acid house-like sound
+    acidHouseOscillator.type = 'sawtooth';
+    acidHouseOscillator.frequency.setValueAtTime(110, audioContext.currentTime);
+    acidHouseOscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 4);
+    
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    
+    twinPeaksOscillator.connect(gain
+Node);
+    pacmanOscillator.connect(gainNode);
+    acidHouseOscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    twinPeaksOscillator.start();
+    pacmanOscillator.start();
+    acidHouseOscillator.start();
+    
+    // Loop the music
+    setInterval(() => {
+        twinPeaksOscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+        twinPeaksOscillator.frequency.setValueAtTime(440, audioContext.currentTime + 2);
+        
+        pacmanOscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        pacmanOscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.1);
+        pacmanOscillator.frequency.setValueAtTime(440, audioContext.currentTime + 0.2);
+        
+        acidHouseOscillator.frequency.setValueAtTime(110, audioContext.currentTime);
+        acidHouseOscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 4);
+    }, 4000);
+}
+
+// Function to play AI score sound
+function playAIScoreSound() {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.5);
+    
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+// Function to play Player score sound
+function playPlayerScoreSound() {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(660, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(330, audioContext.currentTime + 0.5);
+    
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+// New: Weird things that can be eaten
+let weirdThings = [];
+
+function createWeirdThing() {
+    return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: 10,
+        effect: Math.random() < 0.5 ? 'enlarge' : 'shrink'
+    };
+}
+
+function drawWeirdThing(thing) {
+    ctx.beginPath();
+    ctx.arc(thing.x, thing.y, thing.radius, 0, Math.PI * 2);
+    ctx.fillStyle = thing.effect === 'enlarge' ? '#00ff00' : '#ff0000';
+    ctx.fill();
+    ctx.closePath();
+}
+
+function resetPuck(){puck.x=canvas.width/2;puck.y=canvas.height/2;puck.dx=0;puck.dy=0}
+function launchPuck(){const a=Math.random()*Math.PI*2;puck.dx=Math.cos(a)*puck.speed;puck.dy=Math.sin(a)*puck.speed}
+resetPuck();
+function drawTable(){
+ctx.fillStyle='#00366d';ctx.fillRect(0,0,canvas.width,canvas.height);
+ctx.beginPath();ctx.moveTo(0,canvas.height/2);ctx.lineTo(canvas.width,canvas.height/2);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+ctx.beginPath();ctx.arc(canvas.width/2,canvas.height/2,75,0,Math.PI*2);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+ctx.fillStyle='#222';ctx.fillRect((canvas.width-goal.width)/2,-5,goal.width,goal.height);ctx.fillRect((canvas.width-goal.width)/2,canvas.height-5,goal.width,goal.height);
+}
+function drawPaddle(x,y,r,emotion){
+ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle='#ffff00';ctx.fill();ctx.closePath();
+// Draw eyes
+ctx.beginPath();ctx.arc(x-r*0.3,y-r*0.2,r*0.15,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();ctx.closePath();
+ctx.beginPath();ctx.arc(x+r*0.3,y-r
+*0.2,r*0.15,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();ctx.closePath();
+// Draw mouth based on emotion
+if(emotion === 'happy') {
+    ctx.beginPath();ctx.arc(x,y+r*0.1,r*0.5,0,Math.PI);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.stroke();
+} else if(emotion === 'sad') {
+    ctx.beginPath();ctx.arc(x,y+r*0.5,r*0.5,Math.PI,Math.PI*2);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.stroke();
+} else if(emotion === 'surprised') {
+    ctx.beginPath();ctx.arc(x,y+r*0.3,r*0.2,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();ctx.closePath();
+} else if(emotion === 'angry') {
+    ctx.beginPath();ctx.moveTo(x-r*0.3,y+r*0.3);ctx.lineTo(x+r*0.3,y+r*0.3);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x-r*0.5,y-r*0.4);ctx.lineTo(x-r*0.2,y-r*0.3);ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+r*0.5,y-r*0.4);ctx.lineTo(x+r*0.2,y-r*0.3);ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
+} else if(emotion === 'flirty') {
+    ctx.beginPath();ctx.arc(x,y+r*0.1,r*0.5,0,Math.PI);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.stroke();
+    ctx.beginPath();ctx.arc(x-r*0.3,y-r*0.2,r*0.05,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();ctx.closePath();
+} else {
+    ctx.beginPath();ctx.moveTo(x-r*0.3,y+r*0.3);ctx.lineTo(x+r*0.3,y+r*0.3);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.stroke();
+}
+}
+function drawPuck(){
+ctx.beginPath();ctx.arc(puck.x,puck.y,puck.radius,0,Math.PI*2);ctx.fillStyle='#ecf0f1';ctx.fill();ctx.closePath();
+ctx.beginPath();ctx.arc(puck.x,puck.y,puck.radius*.8,0,Math.PI*2);ctx.strokeStyle='#bdc3c7';ctx.lineWidth=2;ctx.stroke();ctx.closePath()
+}
+function createExplosion(x,y){
+for(let i=0;i<50;i++)particles.push({x,y,radius:Math.random()*3+1,color:`hsl(${Math.random()*60+15},100%,50%)`,velocity:{x:(Math.random()-.5)*8*simulationSpeedMultiplier,y:(Math.random()-.5)*8*simulationSpeedMultiplier},alpha:1})
+}
+function drawExplosion(){
+particles.forEach((p,i)=>{
+if(p.alpha<=0)particles.splice(i,1);
+else{
+p.velocity.y+=.05*simulationSpeedMultiplier;p.x+=p.velocity.x;p.y+=p.velocity.y;p.alpha-=.02*simulationSpeedMultiplier;
+ctx.save();ctx.globalAlpha=p.alpha;ctx.beginPath();ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.restore()
+}})
+}
+function movePaddle(x,y){
+let r=canvas.getBoundingClientRect();
+paddle.x=Math.min(Math.max(x-r.left,paddle.radius),canvas.width-paddle.radius);
+paddle.y=Math.min(Math.max(y-r.top,canvas.height/2+paddle.radius),canvas.height-paddle.radius)
+}
+function handleMouseMove(e){
+movePaddle(e.clientX,e.clientY);
+}
+function handleTouchMove(e){
+e.preventDefault();
+const touch=e.touches[0];
+movePaddle(touch.clientX,touch.clientY);
+}
+function isPuckStuck(){return puck.y<canvas.height/4&&(puck.x<puck.radius*2||puck.x>canvas.width-puck.radius*2)}
+function moveAIPaddle(){
+const c=aiPaddle.x,d=Math.abs(c-canvas.width/2);
+if(aiState==='normal'&&isPuckStuck()){
+aiState='retreating';
+puckStuckTime=0;
+}
+if(aiState==='retreating'){
+const targetX=canvas.width/2;
+const targetY=aiPaddle.radius;
+const dx=targetX-aiPaddle.x;
+const dy
+=targetY-aiPaddle.y;
+const distance=Math.sqrt(dx*dx+dy*dy);
+if(distance>5){
+aiPaddle.x+=dx/distance*aiPaddle.speed*simulationSpeedMultiplier;
+aiPaddle.y+=dy/distance*aiPaddle.speed*simulationSpeedMultiplier;
+}else{
+aiState='normal';
+}
+}else{
+if(puck.y<canvas.height/2){
+const targetX=puck.x;
+const dx=targetX-aiPaddle.x;
+if(Math.abs(dx)>5){
+aiPaddle.x+=dx/Math.abs(dx)*aiPaddle.speed*simulationSpeedMultiplier;
+}
+}
+}
+}
+function updateGame(){
+movePuck();
+moveAIPaddle();
+drawTable();
+drawPaddle(paddle.x,paddle.y,paddle.radius,'normal');
+drawPaddle(aiPaddle.x,aiPaddle.y,aiPaddle.radius,'normal');
+drawPuck();
+drawExplosion();
+weirdThings.forEach(drawWeirdThing);
+requestAnimationFrame(updateGame);
+}
+function movePuck(){
+puck.x+=puck.dx*simulationSpeedMultiplier;
+puck.y+=puck.dy*simulationSpeedMultiplier;
+if(puck.x<puck.radius||puck.x>canvas.width-puck.radius){
+puck.dx*=-1;
+}
+if(puck.y<puck.radius||puck.y>canvas.height-puck.radius){
+puck.dy*=-1;
+}
+if(puck.y<0){
+playerScore++;
+playPlayerScoreSound();
+resetPuck();
+launchPuck();
+}
+if(puck.y>canvas.height){
+aiScore++;
+playAIScoreSound();
+resetPuck();
+launchPuck();
+}
+}
+canvas.addEventListener('mousemove',handleMouseMove);
+canvas.addEventListener('touchmove',handleTouchMove);
+resetPuck();
+launchPuck();
+updateGame();
+</script>
+</body>
+</html>
