@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "tabnine.tabnine-vscode",
-        "continue.continue"
+        "continue.continue",
+        "spaceboxai.spacebox-vscode"
     ]
 }
