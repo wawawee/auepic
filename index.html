@@ -3,13 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forward Cosmic Journey Animation</title>
+    <title>AuEpic</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #000; 
+            font-family: 'Arial', sans-serif; 
+        }
+        #cosmicCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1; /* Ensure logo is above the canvas */
+        }
     </style>
 </head>
 <body>
     <canvas id="cosmicCanvas"></canvas>
+    <img id="logo" src="assets/images/AuEpicGoldObsidianShadeMid.png" alt="AuEpic Logo"> 
     <script>
         const canvas = document.getElementById('cosmicCanvas');
         const ctx = canvas.getContext('2d');
